@@ -27,9 +27,11 @@ class ThreadManager:
             print('print creating streamer')
             self.streamer = Streamer(data['input'], data['output'])
             self.streamer.start()
+
         def callback(event: Event):
             while not event.is_set():
                 self.save_logs(data)
+
         self.thread = Thread(target=callback, args=(self.event,))
         self.thread.start()
         
