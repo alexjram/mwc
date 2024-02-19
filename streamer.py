@@ -14,9 +14,9 @@ class Streamer:
         
     def start(self) -> None:
         print (f"{self.input} {self.output}")
-        command = f"ffmpeg -re -stream_loop -1 -i {self.input} -c:v libx264 -f rtsp -rtsp_transport tcp {self.output}"
+        command = f"ffmpeg -v quiet -re -stream_loop -1 -i {self.input} -c copy -f rtsp -rtsp_transport tcp {self.output}"
         
-        self.process = Popen(command, shell=True, stdout=DEVNULL, stderr=STDOUT)
+        self.process = Popen(command, shell=True)
         print('stream started')
 
     def stop(self) -> None:
