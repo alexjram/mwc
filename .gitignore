@@ -5,4 +5,4 @@ files/
 data.json
 
 Makefile
-docker-compose.yaml
+docker-compose.yml
