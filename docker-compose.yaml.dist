@@ -1,0 +1,9 @@
+version: '3.5'
+
+services:
+    streamer-demo-server:
+        container_name: streamer-demo-server
+        build:
+            context: ./docker/python
+        volumes:
+            - .:/appdata/www:rw
