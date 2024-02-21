@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 from time import sleep
 from dotenv import load_dotenv
 from backend_client import BackendClient
@@ -23,7 +25,8 @@ class Main:
         file.close()
         
         for obj in data:
-            self.threads[obj['code']] = ThreadManager(self.client, obj['code'], obj)
+            code = obj.get('code', ''.join(random.choices(string.ascii_uppercase, k=6)))
+            self.threads[code] = ThreadManager(self.client, obj)
             
         while self.enabled:
             print('2 seconds passed')

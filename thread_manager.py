@@ -1,5 +1,7 @@
 
 
+import random
+import string
 from threading import Event, Thread
 from time import sleep
 
@@ -11,13 +13,13 @@ class ThreadManager:
     event: Event
     thread: Thread
     client: BackendClient
-    code: str
+    code: str|None
     streamer: Streamer|None
     
-    def __init__(self, client: BackendClient, code: str, data: dict) -> None:
+    def __init__(self, client: BackendClient, data: dict) -> None:
         self.event = Event()
         self.client  = client
-        self.code = code
+        self.code = data.get('code', ''.join(random.choices(string.ascii_uppercase, k=6)))
         self.streamer = None
         self.start(data)
         
@@ -31,8 +33,16 @@ class ThreadManager:
         def callback(event: Event):
             while not event.is_set():
                 self.save_logs(data)
+        
+        def callback_no_send(event: Event):
+            while not event.is_set():
+                sleep(1)
+            
+        target = callback    
+        if not 'code' in data:
+            target = callback_no_send
 
-        self.thread = Thread(target=callback, args=(self.event,))
+        self.thread = Thread(target=target, args=(self.event,))
         self.thread.start()
         
     def save_logs(self, data: dict) -> None:
