@@ -3,6 +3,7 @@ __pycache__/
 .env
 files/
 data.json
+data-*
 
 Makefile
 docker-compose.yml
