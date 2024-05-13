@@ -25,7 +25,7 @@ class ThreadManager:
         
     def start(self, data: dict):
         print('thread started')
-        if data['input'] is not None and data['output'] is not None:
+        if "input" in data and data['input'] is not None and "output" in data and data['output'] is not None:
             print('print creating streamer')
             self.streamer = Streamer(data['input'], data['output'])
             self.streamer.start()
