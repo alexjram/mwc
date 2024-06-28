@@ -1,5 +1,3 @@
-
-
 import random
 import string
 from threading import Event, Thread
@@ -54,9 +52,21 @@ class ThreadManager:
                 if self.event.is_set():
                     return
                 sleep(1)
-            time = seconds
-            self.client.send_location(coor['latitude'], coor['longitude'], data['code'])
             
+            time = seconds
+            sent = False
+
+            while not sent:
+                try:
+                    self.client.send_location(coor['latitude'], coor['longitude'], data['code'])
+                    sent = True
+                except Exception as e:
+                    if e.args[0] != "SERVER_OFF":
+                        self.event.set()
+                        return
+                    
+                    self.client.check_if_server_is_up()
+
     def time_convert(self, time: str) -> int:
         seconds = 0
         time_parts = time.split(':')
