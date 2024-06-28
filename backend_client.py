@@ -5,9 +5,9 @@ class BackendClient:
     url: str
     secondsToRetry: int
     
-    def __init__(self, url: str, secondsToRery: str):
+    def __init__(self, url: str, secondsToRetry: str):
         self.url = url
-        self.secondsToRetry = int(secondsToRery)
+        self.secondsToRetry = int(secondsToRetry)
 
     def check_if_server_is_up(self) -> None:
         url = self.url + '/api'
