@@ -14,15 +14,18 @@ class Main:
     client: BackendClient
     threads: dict[str, ThreadManager]
     enabled: bool
+    secondToRetry: int
     
     def start(self) -> None:
         
-        self.client = BackendClient(os.getenv('BACKEND_URL') or '')
+        self.client = BackendClient(os.getenv('BACKEND_URL') or '', os.getenv('SECONDS_TO_RETRY') or '30')
         self.threads:dict[str, ThreadManager] = {}
         self.enabled = True
         file = open(os.getenv('DATA_FILE') or '', 'r')
         data = json.load(file)
         file.close()
+
+        self.client.check_if_server_is_up()
         
         for obj in data:
             code = obj.get('code', ''.join(random.choices(string.ascii_uppercase, k=6)))
