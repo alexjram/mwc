@@ -1,30 +1,23 @@
-import random
-import string
 from threading import Event, Thread
 from time import sleep
 
 from backend_client import BackendClient
 from streamer import Streamer
 
+from manager.base_manager import BaseManager
 
-class ThreadManager:
-    event: Event
-    thread: Thread
-    client: BackendClient
-    code: str|None
+class MainManager(BaseManager):
+
     streamer: Streamer|None
     
     def __init__(self, client: BackendClient, data: dict) -> None:
-        self.event = Event()
-        self.client  = client
-        self.code = data.get('code', ''.join(random.choices(string.ascii_uppercase, k=6)))
         self.streamer = None
-        self.start(data)
+        super().__init__(client, data)
         
     def start(self, data: dict):
-        print('thread started')
+        self.print('Thread started')
         if "input" in data and data['input'] is not None and "output" in data and data['output'] is not None:
-            print('print creating streamer')
+            self.print('print creating streamer')
             self.streamer = Streamer(data['input'], data['output'])
             self.streamer.start()
 
@@ -40,7 +33,7 @@ class ThreadManager:
         if not 'code' in data:
             target = callback_no_send
 
-        self.thread = Thread(target=target, args=(self.event,))
+        self.thread = Thread(target=target, args=(self.event,), name='Hola')
         self.thread.start()
         
     def save_logs(self, data: dict) -> None:
@@ -73,10 +66,10 @@ class ThreadManager:
         seconds = int(time_parts[0]) * 60 + int(time_parts[1])
         return seconds
     
+    def print(self, message) -> None:
+        print(f"MAIN: {message}")
+    
     def stop(self) -> None:
-        self.event.set()
-        self.thread.join()
-        print('Stopped thread')
+        super().stop()
         if self.streamer is not None:
             self.streamer.stop()
-            

@@ -9,8 +9,8 @@ class BackendClient:
         self.url = url
         self.secondsToRetry = int(secondsToRetry)
 
-    def check_if_server_is_up(self) -> None:
-        url = self.url + '/api'
+    def check_if_server_is_up(self, url = None) -> None:
+        url = (self.url + '/api') if url is None else url
 
         isUp = False
         while not isUp: 
@@ -46,3 +46,16 @@ class BackendClient:
         if res.status_code != 201:
             print(res.json())
             raise Exception("invalid location")
+        
+    def external_request(self, endpoint: str, method: str, to_json: bool = True) -> dict|str:
+        
+        try:
+            res = requests.request(
+                method=method,
+                url=endpoint,
+            )
+        except Exception as e:
+            print(f"Unable to establish connection with {endpoint}. Error: {e}")
+            raise Exception("SERVER_OFF")
+        
+        return res.json() if to_json else res.text
