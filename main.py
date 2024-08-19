@@ -4,7 +4,7 @@ import random
 import string
 from time import sleep
 from dotenv import load_dotenv
-from backend_client import BackendClient
+from utils.backend_client import BackendClient
 from manager.base_manager import BaseManager
 from utils.manager_selector import get_manager_by_type
 

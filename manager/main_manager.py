@@ -1,8 +1,8 @@
 from threading import Event, Thread
 from time import sleep
 
-from backend_client import BackendClient
-from streamer import Streamer
+from utils.backend_client import BackendClient
+from utils.streamer import Streamer
 
 from manager.base_manager import BaseManager
 

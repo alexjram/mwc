@@ -1,10 +1,10 @@
 from threading import Event, Thread
 from time import sleep
 
-from backend_client import BackendClient
+from utils.backend_client import BackendClient
 from manager.base_manager import BaseManager
 
-class VerizonManger(BaseManager):
+class EndpointManager(BaseManager):
 
     location: dict
 
@@ -51,7 +51,7 @@ class VerizonManger(BaseManager):
         sleep(self.location['refresh'])
 
     def print(self, message) -> None:
-        print(f"VERIZON: {message}")
+        print(f"ENDPOINT: {message}")
 
     def stop(self) -> None:
         super().stop()

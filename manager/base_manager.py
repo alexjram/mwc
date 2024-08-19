@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from threading import Event, Thread
-from backend_client import BackendClient
+from utils.backend_client import BackendClient
 
 class BaseManager(ABC):
 
