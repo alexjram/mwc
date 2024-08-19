@@ -4,7 +4,7 @@ from time import sleep
 from utils.backend_client import BackendClient
 from manager.base_manager import BaseManager
 
-class EndpointManager(BaseManager):
+class WithEndpointManager(BaseManager):
 
     location: dict
 
@@ -51,7 +51,7 @@ class EndpointManager(BaseManager):
         sleep(self.location['refresh'])
 
     def print(self, message) -> None:
-        print(f"ENDPOINT: {message}")
+        print(f"WITH_ENDPOINT: {message}")
 
     def stop(self) -> None:
         super().stop()

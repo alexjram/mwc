@@ -19,7 +19,11 @@ class Main:
     
     def start(self) -> None:
         
-        self.client = BackendClient(os.getenv('BACKEND_URL') or '', os.getenv('SECONDS_TO_RETRY') or '30')
+        self.client = BackendClient(
+            os.getenv('BACKEND_URL') or '', 
+            os.getenv('SECONDS_TO_RETRY') or '30',
+            os.getenv('API_TOKEN') or None,
+        )
         self.threads:dict[str, BaseManager] = {}
         self.enabled = True
         file = open(os.getenv('DATA_FILE') or '', 'r')
@@ -38,7 +42,7 @@ class Main:
         while self.enabled:
             print('2 seconds passed')
             sleep(2)
-        
+
     def stop(self):
         for key in self.threads:
             self.threads[key].stop()
