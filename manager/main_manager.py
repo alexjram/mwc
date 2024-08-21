@@ -1,30 +1,25 @@
-import random
-import string
+import utils.common_utils
+
 from threading import Event, Thread
 from time import sleep
 
-from backend_client import BackendClient
-from streamer import Streamer
+from utils.backend_client import BackendClient
+from utils.streamer import Streamer
 
+from manager.base_manager import BaseManager
 
-class ThreadManager:
-    event: Event
-    thread: Thread
-    client: BackendClient
-    code: str|None
+class MainManager(BaseManager):
+
     streamer: Streamer|None
     
     def __init__(self, client: BackendClient, data: dict) -> None:
-        self.event = Event()
-        self.client  = client
-        self.code = data.get('code', ''.join(random.choices(string.ascii_uppercase, k=6)))
         self.streamer = None
-        self.start(data)
+        super().__init__(client, data)
         
     def start(self, data: dict):
-        print('thread started')
+        self.print('Thread started')
         if "input" in data and data['input'] is not None and "output" in data and data['output'] is not None:
-            print('print creating streamer')
+            self.print('print creating streamer')
             self.streamer = Streamer(data['input'], data['output'])
             self.streamer.start()
 
@@ -47,36 +42,20 @@ class ThreadManager:
         time = 0
         coordinates = data["coordinates"]
         for coor in coordinates:
-            seconds = self.time_convert(coor["time"])
+            seconds = utils.common_utils.time_convert(coor["time"])
             for i in range(seconds - time):
                 if self.event.is_set():
                     return
                 sleep(1)
-            
+
+            utils.common_utils.loop_until_is_done(self, lambda: self.client.send_location(coor['latitude'], coor['longitude'], data['code']))
+
             time = seconds
-            sent = False
-
-            while not sent:
-                try:
-                    self.client.send_location(coor['latitude'], coor['longitude'], data['code'])
-                    sent = True
-                except Exception as e:
-                    if e.args[0] != "SERVER_OFF":
-                        self.event.set()
-                        return
-                    
-                    self.client.check_if_server_is_up()
-
-    def time_convert(self, time: str) -> int:
-        seconds = 0
-        time_parts = time.split(':')
-        seconds = int(time_parts[0]) * 60 + int(time_parts[1])
-        return seconds
+    
+    def print(self, message) -> None:
+        print(f"MAIN: {message}")
     
     def stop(self) -> None:
-        self.event.set()
-        self.thread.join()
-        print('Stopped thread')
+        super().stop()
         if self.streamer is not None:
             self.streamer.stop()
-            
