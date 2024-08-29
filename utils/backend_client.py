@@ -48,15 +48,15 @@ class BackendClient:
                 print(f"Unable to establish connection. Error: {e}. Next retry in {self.seconds_to_retry} seconds")
                 sleep(self.seconds_to_retry)
 
-    def send_location(self, latitude: float, longitude: float, code: str) -> None:
+    def send_location(self, latitude: float, longitude: float, code: str, altitude: float = 0, rel_altitude: float = 0) -> None:
         payload = {
             "emergency": False,
             "latitude": latitude,
             "longitude": longitude,
             "assetCode": code,
             "azimuth": None,
-            "altitude": 0,
-            "relAltitude": 0,
+            "altitude": altitude,
+            "relAltitude": rel_altitude,
             "precision": 0,
         }
         
