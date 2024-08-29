@@ -48,7 +48,9 @@ class MainManager(BaseManager):
                     return
                 sleep(1)
 
-            utils.common_utils.loop_until_is_done(self, lambda: self.client.send_location(coor['latitude'], coor['longitude'], data['code']))
+            altitude = float(coor.get('altitude', data.get('altitude', 0)))
+            rel_altitude = float(coor.get('rel_altitude', data.get('rel_altitude', 0)))
+            utils.common_utils.loop_until_is_done(self, lambda: self.client.send_location(coor['latitude'], coor['longitude'], data['code'], altitude, rel_altitude))
 
             time = seconds
     
