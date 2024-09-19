@@ -1,3 +1,4 @@
+from typing import Union
 import requests
 import json
 
@@ -76,7 +77,7 @@ class BackendClient:
 
         self.send_post(endpoint, headers=headers, files=files, data=data)
         
-    def external_request(self, endpoint: str, method: str, to_json: bool = True) -> dict|str:
+    def external_request(self, endpoint: str, method: str, to_json: bool = True) -> Union[dict, str]:
         
         try:
             res = requests.request(
