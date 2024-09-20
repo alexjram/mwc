@@ -72,7 +72,7 @@ class Main:
                 continue
             for obj in self.active_data:
                 for location in obj.get('coordinates', []):
-                    if (location['seconds'] % obj['total_time']) == i:
+                    if (i % obj['total_time']) == location['seconds']:
                         data_to_send.append({
                             "code": obj["code"],
                             "latitude": location["latitude"],
