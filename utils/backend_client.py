@@ -7,12 +7,41 @@ from time import sleep, time
 class BackendClient:
     url: str
     seconds_to_retry: int
-    api_token: str|None
+    api_token: Union[str, None]
+    xrf_token: Union[str, None]
+    xrf_refresh_token: Union[str, None]
     
     def __init__(self, url: str, seconds_to_retry: str, api_token: str|None) -> None:
         self.url = url
         self.seconds_to_retry = int(seconds_to_retry)
         self.api_token = api_token
+        
+    def set_xrf_auth(self, username: str, password: str) -> None:
+        request = requests.post(
+            self.url + '/api/login_check',
+            json={
+                'username': username,
+                'password': password
+            }
+        )
+        if request.status_code != 200:
+            raise Exception("invalid credentials")
+        json_data = request.json()
+        self.xrf_token = json_data.get('token', None)
+        self.xrf_refresh_token = json_data.get('refresh_token', None)
+        
+    def refresh_token(self) -> None:
+        request = requests.post(
+            self.url + '/api/refresh_token',
+            json={
+                'refresh_token': self.xrf_refresh_token
+            }
+        )
+        if request.status_code != 200:
+            raise Exception("invalid refresh token")
+        json_data = request.json()
+        self.xrf_token = json_data.get('token', None)
+        self.xrf_refresh_token = json_data.get('refresh_token', None)
 
     def build_headers(self) -> dict:
         if self.api_token:
@@ -89,3 +118,19 @@ class BackendClient:
             raise Exception("SERVER_OFF")
         
         return res.json() if to_json else res.text
+    
+    def save_logs_batch(self, logs: list) -> None:
+        data = {
+            "locations": logs
+        }
+        request = requests.post(f"{self.url}/api/location_logs/batch", json=data, headers={
+            "Authorization": f"Bearer {self.xrf_token}"
+        })
+        if request.status_code == 401:
+            self.refresh_token()
+            self.save_logs_batch(logs)
+        
+        
+
+        
+            
