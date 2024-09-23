@@ -1,7 +1,7 @@
+import grequests
 from typing import Union
 import requests
 import json
-
 from time import sleep, time
 
 class BackendClient:
@@ -105,6 +105,21 @@ class BackendClient:
         endpoint = '/api/external/alerts/ai'
 
         self.send_post(endpoint, headers=headers, files=files, data=data)
+        
+    def send_alert_async(self, content_id: str, events: dict, image: bytes) -> None:
+        data = {
+            "content_id": content_id,
+            "events": json.dumps(events),
+            "datetime": int(time())
+        }
+        
+        files = {'image': image}
+        headers = self.build_headers()
+        endpoint = '/api/external/alerts/ai'
+        def res_request(res):
+            print(res)
+        req = grequests.post(self.url + endpoint, headers=headers, files=files, data=data, hooks=res_request)
+        grequests.send(req, grequests.Pool(1))
         
     def external_request(self, endpoint: str, method: str, to_json: bool = True) -> Union[dict, str]:
         

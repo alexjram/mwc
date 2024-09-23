@@ -5,7 +5,6 @@ import os
 from dotenv import load_dotenv
 from utils import amqp_client, amqp_worker
 from utils.backend_client import BackendClient
-from utils.data_processor import DataProcessor
 from utils.file_reader import FileParser
 
 
@@ -19,6 +18,7 @@ class Main:
     data: list[dict]
     active_data: list[dict]
     amqp_manager: amqp_client.AMQPClient
+    worker: amqp_worker.AMQPWorker
     
     def start(self) -> None:
         
@@ -38,7 +38,7 @@ class Main:
             self.active_data = file_parser.active_data
             print(f"Active data: {file_parser.active_data}")
         
-        worker = amqp_worker.AMQPWorker(
+        self.worker = amqp_worker.AMQPWorker(
             os.getenv('AMQP_URL') or 'localhost',
             int(os.getenv('AMQP_PORT') or "5672"),
             os.getenv('AMQP_USERNAME') or 'guest',
@@ -48,7 +48,7 @@ class Main:
             callback
         )
         
-        worker.start()
+        self.worker.start()
         
         print('running this thing')
         
@@ -65,6 +65,8 @@ class Main:
             for obj in file_parser.active_data:
                 for location in obj.get('coordinates', []):
                     if (i % obj['total_time']) == location['seconds']:
+                        if obj.get('image', None) is not None:
+                            self.client.send_alert_async(obj['content_id'], {"people_present": True,}, obj['code'])
                         data_to_send.append({
                             "code": obj["code"],
                             "latitude": location["latitude"],
@@ -78,6 +80,7 @@ class Main:
             i += 1
             
     def stop(self) -> None:
+        self.worker.stop()
         self.enabled = False
         
     def init_client(self) -> None:

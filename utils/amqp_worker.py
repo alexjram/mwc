@@ -65,6 +65,7 @@ class AMQPWorker:
         self.thread.start()
 
     def stop(self) -> None:
+        self.channel.close()
         self.connection.close()
         self.thread.join()
         
