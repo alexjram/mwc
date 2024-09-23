@@ -3,9 +3,10 @@ import sys
 from time import sleep
 import os
 from dotenv import load_dotenv
-from utils import amqp_client
+from utils import amqp_client, amqp_worker
 from utils.backend_client import BackendClient
 from utils.data_processor import DataProcessor
+from utils.file_reader import FileParser
 
 
 load_dotenv()
@@ -21,35 +22,23 @@ class Main:
     
     def start(self) -> None:
         
-        self.client = BackendClient(
-            os.getenv('BACKEND_URL') or '',
-            os.getenv('SECONDS_TO_RETRY') or '30',
-            os.getenv('API_TOKEN') or None
-        )
-        self.client.set_xrf_auth(
-            os.getenv('XRF_USERNAME') or '',
-            os.getenv('XRF_PASSWORD') or ''
-        )
+        self.init_client()
         
-
         self.enabled = True
         self.secondToRetry = 30
         
-        file = open(os.getenv('DATA_FILE') or '', 'r')
-        data = json.load(file)
-        file.close()
-        
+        file_parser = FileParser(os.getenv('DATA_FILE') or '')
+        file_parser.load_json()
         self.client.check_if_server_is_up()
-        
-        self.data = DataProcessor.normalize(data)
-        
-        self.active_data = []
         
         def callback(ch, method, properties, body):
             data = json.loads(body)
             print(data)
+            file_parser.filter_active(data['added'], data['removed'])       
+            self.active_data = file_parser.active_data
+            print(f"Active data: {file_parser.active_data}")
         
-        self.amqp_manager = amqp_client.AMQPClient(
+        worker = amqp_worker.AMQPWorker(
             os.getenv('AMQP_URL') or 'localhost',
             int(os.getenv('AMQP_PORT') or "5672"),
             os.getenv('AMQP_USERNAME') or 'guest',
@@ -59,18 +48,21 @@ class Main:
             callback
         )
         
-        #self.amqp_client.start()
+        worker.start()
+        
+        print('running this thing')
+        
         
         i = 0
         while self.enabled:
             data_to_send = []
             if i == sys.maxsize - 1000:
                 i = 0
-            if len(self.active_data) == 0:
+            if len(file_parser.active_data) == 0:
                 sleep(1)
                 i += 1
                 continue
-            for obj in self.active_data:
+            for obj in file_parser.active_data:
                 for location in obj.get('coordinates', []):
                     if (i % obj['total_time']) == location['seconds']:
                         data_to_send.append({
@@ -87,6 +79,17 @@ class Main:
             
     def stop(self) -> None:
         self.enabled = False
+        
+    def init_client(self) -> None:
+        self.client = BackendClient(
+            os.getenv('BACKEND_URL') or '',
+            os.getenv('SECONDS_TO_RETRY') or '30',
+            os.getenv('API_TOKEN') or None
+        )
+        self.client.set_xrf_auth(
+            os.getenv('XRF_USERNAME') or '',
+            os.getenv('XRF_PASSWORD') or ''
+        )
     
 if __name__ == '__main__':
     main = Main()
