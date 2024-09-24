@@ -1,5 +1,5 @@
 import grequests
-from typing import Union
+from typing import Callable, Union
 import requests
 import json
 from time import sleep, time
@@ -93,7 +93,26 @@ class BackendClient:
         endpoint = '/api/location_logs'
         self.send_post(endpoint, payload)
         
+    def send_location_async(self, latitude: float, longitude: float, code: str, altitude: float = 0, rel_altitude: float = 0) -> None:
+        payload = {
+            "emergency": False,
+            "latitude": latitude,
+            "longitude": longitude,
+            "assetCode": code,
+            "azimuth": None,
+            "altitude": altitude,
+            "relAltitude": rel_altitude,
+            "precision": 0,
+        }
+        
+        endpoint = '/api/location_logs'
+        def res_request(res):
+            print(res)
+        req = grequests.post(self.url + endpoint, json=payload, hooks=res_request)
+        grequests.send(req, grequests.Pool(1))
+        
     def send_alert(self, content_id: str, events: dict, image: bytes) -> None:
+
         data = {
             "content_id": content_id,
             "events": json.dumps(events),
@@ -133,7 +152,17 @@ class BackendClient:
             raise Exception("SERVER_OFF")
         
         return res.json() if to_json else res.text
-    
+    def external_request_async(self, endpoint: str, method: str, callback: Callable) -> None:
+        try:
+            req = grequests.request(
+                method=method,
+                url=endpoint,
+                hooks=[callback]
+            )
+            grequests.send(req, grequests.Pool(1))
+        except Exception as e:
+            print(f"Unable to establish connection with {endpoint}. Error: {e}")
+            raise Exception("SERVER_OFF")
     def save_logs_batch(self, logs: list) -> None:
         data = {
             "locations": logs

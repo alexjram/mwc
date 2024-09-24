@@ -23,6 +23,7 @@ class DataProcessor:
                 'coordinates': locations,
                 'events': datum.get('events', []),
                 'image': datum.get('image', None),
-                'total_time': total_time
+                'total_time': total_time,
+                'streamer': None
             })
         return new_data

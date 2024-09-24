@@ -18,7 +18,9 @@ class Streamer:
         
         self.process = Popen(command, shell=True)
         print('stream started')
-
+        
+    def has_started(self) -> bool:
+        return self.process.poll() is None
     def stop(self) -> None:
         if self.process.poll() is None:
             self.process.kill()
