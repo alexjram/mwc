@@ -16,14 +16,17 @@ class DataProcessor:
                     "longitude": location.get('longitude', 0),
                     "altitude": location.get('altitude', 0),
                     "seconds": total_time,
+                    "image": location.get('image', None),
+                    "content": location.get('content', None)
                 })
             new_data.append({
                 'type': datum.get('type', 'default'),
                 'code': datum.get('code', ''),
                 'coordinates': locations,
                 'events': datum.get('events', []),
-                'image': datum.get('image', None),
                 'total_time': total_time,
-                'streamer': None
+                'streamer': None,
+                'refresh': datum.get('refresh', None),
+                'endpoint': datum.get('endpoint', None)
             })
         return new_data

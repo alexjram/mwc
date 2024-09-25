@@ -1,8 +1,13 @@
+from socket import timeout
+from urllib import response
 import grequests
-from typing import Callable, Union
+from typing import Callable, Coroutine, Union
 import requests
 import json
 from time import sleep, time
+import aiohttp
+import asyncio
+
 
 class BackendClient:
     url: str
@@ -10,11 +15,13 @@ class BackendClient:
     api_token: Union[str, None]
     xrf_token: Union[str, None]
     xrf_refresh_token: Union[str, None]
+    timeout: aiohttp.ClientTimeout
     
     def __init__(self, url: str, seconds_to_retry: str, api_token: str|None) -> None:
         self.url = url
         self.seconds_to_retry = int(seconds_to_retry)
         self.api_token = api_token
+        self.timeout = aiohttp.ClientTimeout(total=5)
         
     def set_xrf_auth(self, username: str, password: str) -> None:
         request = requests.post(
@@ -93,7 +100,7 @@ class BackendClient:
         endpoint = '/api/location_logs'
         self.send_post(endpoint, payload)
         
-    def send_location_async(self, latitude: float, longitude: float, code: str, altitude: float = 0, rel_altitude: float = 0) -> None:
+    def send_location_async(self, latitude: float, longitude: float, code: str, altitude: float = 0, rel_altitude: float = 0, is_loop_executing = False):
         payload = {
             "emergency": False,
             "latitude": latitude,
@@ -106,10 +113,14 @@ class BackendClient:
         }
         
         endpoint = '/api/location_logs'
-        def res_request(res):
-            print(res)
-        req = grequests.post(self.url + endpoint, json=payload, hooks=res_request)
-        grequests.send(req, grequests.Pool(1))
+        async def send():
+            async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                async with session.post( self.url + endpoint, json=payload) as resp:
+                    print("status: ", resp.status)
+        if not is_loop_executing:
+            asyncio.run(send())
+        else :
+            return send
         
     def send_alert(self, content_id: str, events: dict, image: bytes) -> None:
 
@@ -125,23 +136,26 @@ class BackendClient:
 
         self.send_post(endpoint, headers=headers, files=files, data=data)
         
-    def send_alert_async(self, content_id: str, events: dict, image: bytes) -> None:
+    def send_alert_async(self, content_id: str, events: dict, image: str) -> None:
+        print(image)
         data = {
             "content_id": content_id,
             "events": json.dumps(events),
-            "datetime": int(time())
+            "datetime": f"{int(time())}",
+            "image": open(image, 'rb')
         }
         
-        files = {'image': image}
-        headers = self.build_headers()
-        endpoint = '/api/external/alerts/ai'
-        def res_request(res):
-            print(res)
-        req = grequests.post(self.url + endpoint, headers=headers, files=files, data=data, hooks=res_request)
-        grequests.send(req, grequests.Pool(1))
+        headers = {
+            "Authorization": f"Bearer {self.xrf_token}"
+        }
+        endpoint = '/api/alerts/ai'
+        async def send():
+            async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                async with session.post( self.url + endpoint, headers=headers, data=data) as resp:
+                    print("status: ", resp.status)
+        asyncio.run(send())
         
     def external_request(self, endpoint: str, method: str, to_json: bool = True) -> Union[dict, str]:
-        
         try:
             res = requests.request(
                 method=method,
@@ -152,14 +166,32 @@ class BackendClient:
             raise Exception("SERVER_OFF")
         
         return res.json() if to_json else res.text
-    def external_request_async(self, endpoint: str, method: str, callback: Callable) -> None:
+    def external_request_async(self, endpoint: str, method: str, code: str) -> None:
         try:
-            req = grequests.request(
-                method=method,
-                url=endpoint,
-                hooks=[callback]
-            )
-            grequests.send(req, grequests.Pool(1))
+            async def send():
+                async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                    async with session.request( method, endpoint, headers={"Content-Type": "application/json"}) as resp:
+                        print("status: ", resp.status)
+                        
+                        if resp.status == 200:
+                            if resp.content_type == "application/json":
+                                data = await resp.json()
+                            else:
+                                data = await resp.text()
+                                data = json.loads(data)
+                            print(data)
+                    new_data = {
+                        "code": code,
+                        "latitude": data['latLng'].split(',')[0],
+                        "longitude": data['latLng'].split(',')[1],
+                        "altitude": 0,
+                        "relAltitude": 0,
+                        "precision": 0,
+                        "emergency": False
+                    }
+                    async with session.post( self.url + '/api/location_logs', json=new_data) as resp2:
+                        print("status: ", resp.status)
+            asyncio.run(send())
         except Exception as e:
             print(f"Unable to establish connection with {endpoint}. Error: {e}")
             raise Exception("SERVER_OFF")
@@ -173,6 +205,9 @@ class BackendClient:
         if request.status_code == 401:
             self.refresh_token()
             self.save_logs_batch(logs)
+        else:
+            print(f"save_logs_batch: {request.status_code}")
+        
         
         
 

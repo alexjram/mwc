@@ -2,6 +2,7 @@ import json
 import sys
 from time import sleep
 import os
+import time
 from typing import Callable
 from dotenv import load_dotenv
 from utils import amqp_client, amqp_worker
@@ -47,7 +48,6 @@ class Main:
             data = json.loads(body)
             file_parser.filter_active(data['added'], data['removed'], active_gps_callback, removed_gps_callback)       
             self.active_data = file_parser.active_data
-            print(f"Active data: {file_parser.active_data}")
         
         self.init_worker(callback)
         
@@ -63,8 +63,9 @@ class Main:
                 continue
             data_to_send = self.get_data(file_parser.active_data, i)
             if len(data_to_send) > 0:
+                print(f"time: {i} seconds")
                 self.client.save_logs_batch(data_to_send)
-                print(data_to_send)
+                #print(data_to_send)
             sleep(1)
             i += 1
             
@@ -99,18 +100,17 @@ class Main:
         data_to_send = []
         external_codes = []
         for obj in active_data:
-            if 'endpoint' in obj and 'refresh' in obj and obj['refresh'] is int:
+            if obj['endpoint'] is not None and obj['refresh'] is not None and index % obj['refresh'] == 0:
+                print('is external request')
                 external_codes.append(obj['code'])
-                def external_callback(response, **kwargs):
-                    res = response.json()
-                    self.client.send_location_async(res['latLng'].split(',')[0], response['latLng'].split(',')[1], obj['code'])
-                self.client.external_request_async(obj['endpoint'], 'GET', external_callback)
+                self.client.external_request_async(obj['endpoint'], 'GET', obj['code'])
                 continue
                 
             for location in obj.get('coordinates', []):
                 if (index % obj['total_time']) == location['seconds']:
-                    if obj.get('image', None) is not None:
-                        self.client.send_alert_async(obj['content_id'], {"people_present": True,}, obj['code'])
+                    if location['image'] is not None:
+                        print('is image')
+                        self.client.send_alert_async(location['content'], {"people_present": True,}, location['image'])
                     data_to_send.append({
                         "code": obj["code"],
                         "latitude": location["latitude"],
