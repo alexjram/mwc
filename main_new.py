@@ -2,9 +2,9 @@ import json
 import sys
 from time import sleep
 import os
-import time
 from typing import Callable
 from dotenv import load_dotenv
+from utils.http_worker import HttpWorker
 from utils import amqp_client, amqp_worker
 from utils.backend_client import BackendClient
 from utils.file_reader import FileParser
@@ -22,6 +22,7 @@ class Main:
     active_data: list[dict]
     amqp_manager: amqp_client.AMQPClient
     worker: amqp_worker.AMQPWorker
+    http_worker: HttpWorker
     
     def start(self) -> None:
         
@@ -35,9 +36,9 @@ class Main:
         self.client.check_if_server_is_up()
         
         def active_gps_callback(data: dict):
-            if "input" in data and data['input'] is not None and "output" in data and data['output'] is not None and data['streamer'] is None:
-                streamer = Streamer(data['input'], data['output'])
-                data['streamer'] = streamer
+            if data['input'] is not None and data['output'] is not None and data['streamer'] is None:
+                print('print creating streamer')
+                
                 
         def removed_gps_callback(data: dict):
             if data['streamer'] is not None:
@@ -64,8 +65,7 @@ class Main:
             data_to_send = self.get_data(file_parser.active_data, i)
             if len(data_to_send) > 0:
                 print(f"time: {i} seconds")
-                self.client.save_logs_batch(data_to_send)
-                #print(data_to_send)
+                self.http_worker.send_message('save_logs_batch', data_to_send)
             sleep(1)
             i += 1
             
@@ -84,6 +84,9 @@ class Main:
             os.getenv('XRF_USERNAME') or '',
             os.getenv('XRF_PASSWORD') or ''
         )
+        
+        self.http_worker = HttpWorker(self.client)
+        self.http_worker.start()
     def init_worker(self, callback: Callable) -> None:
         self.worker = amqp_worker.AMQPWorker(
             os.getenv('AMQP_URL') or 'localhost',
@@ -103,14 +106,23 @@ class Main:
             if obj['endpoint'] is not None and obj['refresh'] is not None and index % obj['refresh'] == 0:
                 print('is external request')
                 external_codes.append(obj['code'])
-                self.client.external_request_async(obj['endpoint'], 'GET', obj['code'])
+                self.http_worker.send_message('external_request', {"code": obj['code'], "endpoint": obj['endpoint'], "method": 'GET'})
                 continue
+            
+            if obj['streamer'] is None and obj['input'] is not None and obj['output'] is not None and (index % obj['total_time']) == 0:
+                streamer = Streamer(obj['input'], obj['output'])
+                obj['streamer'] = streamer
                 
             for location in obj.get('coordinates', []):
                 if (index % obj['total_time']) == location['seconds']:
                     if location['image'] is not None:
                         print('is image')
                         self.client.send_alert_async(location['content'], {"people_present": True,}, location['image'])
+                        self.http_worker.send_message('send_alert', {
+                            "content_id": location['content'],
+                            "events": {"people_present": True},
+                            "image": location['image']
+                        })
                     data_to_send.append({
                         "code": obj["code"],
                         "latitude": location["latitude"],

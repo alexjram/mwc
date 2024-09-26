@@ -1,3 +1,4 @@
+from requests import get
 from utils.time_converter import convert_time_to_int
 
 
@@ -27,6 +28,9 @@ class DataProcessor:
                 'total_time': total_time,
                 'streamer': None,
                 'refresh': datum.get('refresh', None),
-                'endpoint': datum.get('endpoint', None)
+                'endpoint': datum.get('endpoint', None),
+                'input': datum.get('input', None),
+                'output': datum.get('output', None),
+                'streamer': None
             })
         return new_data

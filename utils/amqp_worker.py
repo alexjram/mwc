@@ -41,8 +41,6 @@ class AMQPWorker:
         def init_thread():
             self.connection.ioloop.start()
         
-        
-        
         try:
             self.thread = threading.Thread(target=init_thread)
             self.thread.start()
@@ -56,15 +54,10 @@ class AMQPWorker:
         def my_callback(channel, method, properties, body):
             self.callback(channel, method, properties, body)
         self.channel.basic_consume(queue=self.queue, on_message_callback=my_callback, auto_ack=True)
-        
-    def run_io_loop(self):
-        self.connection.ioloop.start()
-        
-    def init_thread(self):
-        self.thread = threading.Thread(target=self.run_io_loop)
-        self.thread.start()
+    
 
     def stop(self) -> None:
+        self.connection.ioloop.stop()
         self.channel.close()
         self.connection.close()
         self.thread.join()

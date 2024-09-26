@@ -1,7 +1,4 @@
-from socket import timeout
-from urllib import response
-import grequests
-from typing import Callable, Coroutine, Union
+from typing import Union
 import requests
 import json
 from time import sleep, time
@@ -17,7 +14,7 @@ class BackendClient:
     xrf_refresh_token: Union[str, None]
     timeout: aiohttp.ClientTimeout
     
-    def __init__(self, url: str, seconds_to_retry: str, api_token: str|None) -> None:
+    def __init__(self, url: str, seconds_to_retry: str, api_token:Union[str, None]) -> None:
         self.url = url
         self.seconds_to_retry = int(seconds_to_retry)
         self.api_token = api_token
@@ -195,7 +192,7 @@ class BackendClient:
         except Exception as e:
             print(f"Unable to establish connection with {endpoint}. Error: {e}")
             raise Exception("SERVER_OFF")
-    def save_logs_batch(self, logs: list) -> None:
+    def save_logs_batch(self, logs: list[dict]) -> None:
         data = {
             "locations": logs
         }

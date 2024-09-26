@@ -1,5 +1,6 @@
 import base64
 import os
+from typing import Callable
 
 from manager.base_manager import BaseManager
 
@@ -23,7 +24,7 @@ def to_base64(document) -> None|str:
 
     return base64.b64encode(bytes_read).decode()
 
-def loop_until_is_done(manager: BaseManager, callback: callable) -> None:
+def loop_until_is_done(manager: BaseManager, callback: Callable) -> None:
     sent = False
     while not sent:
         try:
