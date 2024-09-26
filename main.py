@@ -71,6 +71,7 @@ class Main:
             
     def stop(self) -> None:
         self.worker.stop()
+        self.http_worker.stop()
         self.enabled = False
         
     def init_client(self) -> None:
