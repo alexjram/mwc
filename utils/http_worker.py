@@ -1,5 +1,6 @@
+from operator import is_
 from queue import Queue 
-from threading import Thread
+from threading import Event, Thread
 from typing import Union
 
 from utils.backend_client import BackendClient
@@ -9,16 +10,21 @@ class HttpWorker:
     queue: Queue
     thread: Thread
     client: BackendClient
+    event: Event
     
     def __init__(self, client: BackendClient) -> None:
         self.client = client
        
     def start(self):
+        self.event = Event()
         self.queue = Queue()
-        def worker() -> None:
-            while True:
+        def worker(event: Event) -> None:
+            is_set = False
+            while not event.is_set() and not is_set:
                 item = self.queue.get()
                 print('processing item')
+                if item is None:
+                    is_set = True
                 try:
                     self.process(item)
                 except KeyboardInterrupt:
@@ -26,17 +32,23 @@ class HttpWorker:
                 except Exception as e:
                     print(e)
                 self.queue.task_done()
-            self.stop()
+            while not self.queue.empty():
+                self.queue.get()
+                self.queue.task_done
+            #self.stop()
         
-        self.thread = Thread(target=worker, daemon=True)
+        self.thread = Thread(target=worker, daemon=True, args=(self.event,))
         self.thread.start()
         
     def stop(self) -> None:
-        for i in range(self.queue.qsize()):
-            self.queue.get()
-            self.queue.task_done()
+        self.event.set()
+        self.queue.put(None)
+        print('stopping worker')
+        print('stoping queue')
         self.queue.join()
+        print('stopping thread')
         self.thread.join()
+        print('stopped worker')
     
     def process(self, item: dict) -> None:
         action = item['action']
@@ -52,7 +64,8 @@ class HttpWorker:
             self.client.external_request_async(payload['endpoint'], payload['method'], payload['code'])
 
     def send_message(self, action: str, payload: Union[dict, list]) -> None:
-        self.queue.put({
-            'action': action,
-            'payload': payload
-        })
+        if not self.event.is_set():
+            self.queue.put({
+                'action': action,
+                'payload': payload
+            })
