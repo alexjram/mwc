@@ -1,3 +1,5 @@
 python-dotenv
 requests
 pika
+aiohttp
+ffmpeg-python
