@@ -10,6 +10,7 @@ class GPSProcessor:
     http_worker: HttpWorker
     enabled: bool
     active_data: list[dict]
+    all_data: list[dict]
     
     def __init__(self, active_data: list[dict], url: str, secons_to_retry: str, api_token: Union[str, None], username: str, password: str) -> None:
         client = BackendClient(url, secons_to_retry, api_token)
@@ -22,16 +23,23 @@ class GPSProcessor:
         
     def set_active_data(self, active_data: list[dict]):
         self.active_data = active_data
+    def set_all_data(self, all_data: list[dict]):
+        self.all_data = all_data
+        
     def disable(self):
         self.enabled = False
     def process(self):
+
         i = 0
         while self.enabled:
             if 0 == sys.maxsize - 1000:
                 i = 0
-            if len(self.active_data) > 0:
+            if len(self.active_data) == 0:
+                if i % 3600 == 0:
+                    self.__send_initial_inactive()
                 sleep(1)
                 i += 1
+                continue
             data_to_send = self.__process_item(self.active_data, i)
             if len(data_to_send) > 0:
                 print(data_to_send)
@@ -69,3 +77,16 @@ class GPSProcessor:
                         "altitude": location["altitude"]
                     })
         return data_to_send
+    
+    def __send_initial_inactive(self):
+        send_data = []
+        for da in self.all_data:
+            if len(da['coordinates']) == 0:
+                continue
+            send_data.append({
+                'code': da['code'],
+                'latitude': da['coordinates'][0]['latitude'],
+                'longitude': da['coordinates'][0]['longitude'],
+                'altitude': da['coordinates'][0]['altitude'],
+            })
+        self.http_worker.send_message('gps_data', send_data)

@@ -48,6 +48,7 @@ class Main:
             data = json.loads(body)
             self.data, self.active_data = self.message_handler.handle(self.data, self.active_data, properties.headers['type'], data)
             self.gps_processor.set_active_data(self.active_data)
+            self.gps_processor.set_all_data(self.data)
         
         self.init_worker(callback)
         
@@ -81,6 +82,7 @@ class Main:
             os.getenv('XRF_USERNAME') or '', 
             os.getenv('XRF_PASSWORD') or ''
         )
+        self.gps_processor.set_all_data(self.data)
         def active_gps_callback(data: dict):
             if data['input'] is not None and data['output'] is not None and data['streamer'] is None:
                 print('print creating streamer')
