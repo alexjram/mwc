@@ -17,7 +17,7 @@ class FileParser:
         file.close()
         self.whole_data = DataProcessor.normalize(data)
         self.active_data = []
-        return data
+        return self.whole_data
     
     def filter_active(self, added: list[str], removed: list[str], active_callback: Union[Callable, None] = None, removed_callback: Union[Callable, None] = None) -> list[dict]:
         active_data = self.active_data.copy()

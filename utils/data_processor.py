@@ -9,7 +9,11 @@ class DataProcessor:
         for datum in data:
             total_time = 0
             locations = []
-            for location in datum.get('coordinates', []):
+            coordinates = datum.get('coordinates', [])
+            if len(coordinates) == 0:
+                coordinates = datum.get('locations', [])
+                
+            for location in coordinates:
                 total_time = convert_time_to_int(location.get('time', '00:00'))
                 locations.append({
                     "time": location.get('time', '00:00'),
@@ -34,3 +38,5 @@ class DataProcessor:
                 'streamer': None
             })
         return new_data
+    
+    

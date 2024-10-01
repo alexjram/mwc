@@ -205,6 +205,15 @@ class BackendClient:
         else:
             print(f"save_logs_batch: {request.status_code}")
         
+    def get_gps_list(self) -> list[dict]:
+        request = requests.get(f"{self.url}/api/fake_gps", headers={
+            "Authorization": f"Bearer {self.xrf_token}"
+        })
+        if request.status_code == 401:
+            self.refresh_token()
+            return self.get_gps_list()
+        else:
+            return request.json()
         
         
 
