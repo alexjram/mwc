@@ -32,6 +32,10 @@ class BackendClient:
         
         print(res.status_code)
 
+        if res.status_code in [200, 504]:
+            print(res.json())
+            raise Exception("SERVER_OFF")
+
         if res.status_code != 201:
             print(res.json())
             raise Exception(f"invalid item for {endpoint}")
