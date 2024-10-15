@@ -33,14 +33,20 @@ class AMQPMessageHandler:
         print(self.all_data[0].keys())
         added = data["added"]
         removed = data["removed"]
-        for ac_data in self.active_data:
+        active_data_copy = self.active_data.copy()
+        for ac_data in active_data_copy:
             if ac_data['code'] in removed:
                 self.active_data.remove(ac_data)
                 self.removed_callback(ac_data)
         for datum in self.all_data:
             if datum['code'] in added:
-                self.active_data.append(datum)
-                self.active_callback(datum)
+                found = False
+                for ac_data in self.active_data:
+                    if ac_data['code'] == datum['code']:
+                        found = True
+                if not found:
+                    self.active_data.append(datum)
+                    self.active_callback(datum)
         return self.all_data, self.active_data
     
     def __handle_creation(self, data: dict) -> tuple[list, list]:
