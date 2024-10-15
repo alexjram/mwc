@@ -54,7 +54,7 @@ class HttpWorker:
         action = item['action']
         payload = item['payload']
         
-        if action == 'save_logs_batch':
+        if action == 'save_logs_batch' or action == 'gps_data':
             self.client.save_logs_batch(payload)
         if action == 'send_location':
             self.client.send_location(payload['latitude'], payload['longitude'], payload['code'], payload['altitude'], payload['rel_altitude'])
